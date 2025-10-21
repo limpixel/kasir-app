@@ -10,30 +10,15 @@ class Category extends Model
 {
     use HasFactory;
     
-    /**
-     * fillable
-     *
-     * @var array
-     */
     protected $fillable = [
         'image', 'name', 'description'
     ];
 
-    /**
-     * products
-     *
-     * @return void
-     */
+   
     public function products()
     {
         return $this->hasMany(Product::class);
     }
-
-    /**
-     * image
-     *
-     * @return Attribute
-     */
     protected function image(): Attribute
     {
         return Attribute::make(

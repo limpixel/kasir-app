@@ -19,7 +19,8 @@ class RoleController extends Controller
         // get all role data
         $roles = Role::query()
             ->with('permissions')
-            ->when(request()->search, fn($query) => $query->where('name', 'like', '%' . request()->search . '%'))
+            ->when(request()->search, fn($query) => 
+            $query->where('name', 'like', '%' . request()->search . '%'))
             ->select('id', 'name')
             ->latest()
             ->paginate(7)

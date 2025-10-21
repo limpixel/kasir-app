@@ -11,30 +11,17 @@ class Profit extends Model
 {
     use HasFactory;
     
-    /**
-     * fillable
-     *
-     * @var array
-     */
+    
     protected $fillable = [
         'transaction_id', 'total'
     ];
 
-    /**
-     * transaction
-     *
-     * @return void
-     */
+
     public function transaction()
     {
         return $this->belongsTo(Transaction::class);
     }
 
-    /**
-     * createdAt
-     *
-     * @return Attribute
-     */
     protected function createdAt(): Attribute
     {
         return Attribute::make(

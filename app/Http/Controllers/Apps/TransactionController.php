@@ -13,11 +13,7 @@ use App\Http\Controllers\Controller;
 
 class TransactionController extends Controller
 {
-    /**
-     * index
-     *
-     * @return void
-     */
+    
     public function index()
     {
         //get cart
@@ -39,12 +35,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    /**
-     * searchProduct
-     *
-     * @param  mixed $request
-     * @return void
-     */
+    
     public function searchProduct(Request $request)
     {
         //find product by barcode
@@ -63,12 +54,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    /**
-     * addToCart
-     *
-     * @param  mixed $request
-     * @return void
-     */
+    
     public function addToCart(Request $request)
     {
         // Cari produk berdasarkan ID yang diberikan
@@ -112,12 +98,7 @@ class TransactionController extends Controller
     }
 
 
-    /**
-     * destroyCart
-     *
-     * @param  mixed $request
-     * @return void
-     */
+    
     public function destroyCart($cart_id)
     {
         $cart = Cart::with('product')->whereId($cart_id)->first();
@@ -132,12 +113,7 @@ class TransactionController extends Controller
 
     }
 
-    /**
-     * store
-     *
-     * @param  mixed $request
-     * @return void
-     */
+    
     public function store(Request $request)
     {
         /**

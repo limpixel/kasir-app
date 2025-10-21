@@ -10,30 +10,17 @@ class Product extends Model
 {
     use HasFactory;
     
-    /**
-     * fillable
-     *
-     * @var array
-     */
     protected $fillable = [
-        'image', 'barcode', 'title', 'description', 'buy_price', 'sell_price', 'category_id', 'stock'
+        'image', 'barcode', 'title', 'description', 
+        'buy_price', 'sell_price', 'category_id', 'stock'
     ];
 
-    /**
-     * category
-     *
-     * @return void
-     */
+    
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    /**
-     * image
-     *
-     * @return Attribute
-     */
     protected function image(): Attribute
     {
         return Attribute::make(

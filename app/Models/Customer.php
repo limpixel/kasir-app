@@ -9,11 +9,6 @@ class Customer extends Model
 {
     use HasFactory;
     
-    /**
-     * fillable
-     *
-     * @var array
-     */
     protected $fillable = [
         'name', 'no_telp', 'address'
     ];
