@@ -23,27 +23,12 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
         mainScript.src = '/js/main.js';
         document.body.appendChild(mainScript);
 
-        // Windows-specific fallback (Quick Fix)
-        const windowsTimer = setTimeout(() => {
-            // Force content visibility if resources failed
-            if (!document.documentElement.classList.contains('ss-loaded')) {
-                document.documentElement.classList.add('ss-loaded');
-                document.body.classList.add('ss-show');
-            }
-            
-            // Safe re-initialization
-            if (window.ssInit && typeof window.ssInit === 'function') {
-                window.ssInit();
-            }
-        }, 2000); // 2 second fallback for Windows timing
-
         // Cleanup
         return () => {
             if (document.head.contains(vendorCss)) document.head.removeChild(vendorCss);
             if (document.head.contains(stylesCss)) document.head.removeChild(stylesCss);
             if (document.body.contains(pluginsScript)) document.body.removeChild(pluginsScript);
             if (document.body.contains(mainScript)) document.body.removeChild(mainScript);
-            clearTimeout(windowsTimer);
         };
     }, []);
 
