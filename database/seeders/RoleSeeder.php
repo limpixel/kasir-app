@@ -16,6 +16,7 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $this->createRoleWithPermissions('users-access', '%users%');
+        $this->createRoleWithPermissions('chart-access', '%chart%');
         $this->createRoleWithPermissions('roles-access', '%roles%');
         $this->createRoleWithPermissions('permission-access', '%permissions%');
         $this->createRoleWithPermissions('categories-access', '%categories%');

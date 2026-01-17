@@ -22,6 +22,12 @@ class PermissionSeeder extends Seeder
         Permission::create(['name' => 'users-update']);
         Permission::create(['name' => 'users-delete']);
 
+        // Chart Access ( For user )
+        Permission::create(['name' => 'chart-access']);
+        Permission::create(['name' => 'chart-create']);
+        Permission::create(['name' => 'chart-update']);
+        Permission::create(['name' => 'chart-delete']);
+
         // roles permissions
         Permission::create(['name' => 'roles-access']);
         Permission::create(['name' => 'roles-create']);

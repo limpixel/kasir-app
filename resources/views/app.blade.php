@@ -18,12 +18,32 @@
     @inertiaHead
     <style>
         body.dark {
-            background-color: rgb(3 7 18 / 0.9);
+            background-color: #090a0a;
         }
     </style>
+
+    {{-- FE FRONTEND --}}
+     <script>
+        document.documentElement.classList.remove('no-js');
+        document.documentElement.classList.add('js');
+    </script>
+
+    <!-- CSS
+    ================================================== -->
+    {{-- <link rel="stylesheet" href="{{ asset('css/vendor.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/styles.css') }}"> --}}
+
+    <!-- favicons
+    ================================================== -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16.png') }}">
+    <link rel="manifest" href="site.webmanifest">
+
+
 </head>
 
-<body class="font-sans antialiased bg-[#E9E9E9]" style="font-family: 'Jost', sans-serif;" onload="setInitialTheme()">
+<body class="font-sans antialiased bg-[#e0e0e0]" style="font-family: 'Jost', sans-serif;" onload="setInitialTheme()">
     @inertia
     <script>
         function setInitialTheme() {
@@ -37,6 +57,11 @@
             }
         }
     </script>
+
+    <!-- Java Script FE
+    ================================================== -->
+    <script src="{{ asset('js/plugins.js') }}"></script>
+    <script src="{{ asset('js/main.js') }}"></script>
 </body>
 
 </html>
