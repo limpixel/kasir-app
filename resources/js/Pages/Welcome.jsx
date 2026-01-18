@@ -588,27 +588,13 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                             </div>
 
                             <div className="column xl-9 lg-12 s-footer__main-end grid-cols grid-cols--wrap">
-                                <div className="grid-cols__column footer-block">
-                                    <h6>Location</h6>
-                                    <p>
-                                        456 Elm Street, Los Angeles <br />
-                                        CA 90001
-                                    </p>
-                                </div>
+                                
 
                                 <div className="grid-cols__column footer-block">
                                     <h6>Contacts</h6>
                                     <ul className="link-list">
                                         <li><a href="mailto:#0">contact@lounge.com</a></li>
                                         <li><a href="tel:+2135551212">(213) 555-123-3456</a></li>
-                                    </ul>
-                                </div>
-
-                                <div className="grid-cols__column footer-block">
-                                    <h6>Opening Hours</h6>
-                                    <ul className="opening-hours">
-                                        <li><span className="opening-hours__days">Weekdays</span><span className="opening-hours__time">10:00am - 9:00pm</span></li>
-                                        <li><span className="opening-hours__days">Weekends</span><span className="opening-hours__time">9:00am - 10:00pm</span></li>
                                     </ul>
                                 </div>
                             </div>

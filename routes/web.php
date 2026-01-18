@@ -20,6 +20,13 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('/cart', function() {
+    return Inertia::render('CartPage', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('cart.index');
+
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
     Route::get('/', function () {
