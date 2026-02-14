@@ -54,7 +54,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
     return (
         <>
             <Head>
-                <title>Sniffy - Premium Perfume Store</title>
+                <title>Sniffly - Premium Perfume Store</title>
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"
@@ -109,88 +109,74 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                             </div>
 
                             <nav className="header-nav">
-                                <ul className="header-nav__links">
-                                    <Link
-                                        href="/"
-                                        className="text-gray-200 hover:text-white transition-colors font-medium"
-                                    >
-                                        Home
-                                    </Link>
+                        <ul className="header-nav__links">
+                            <Link
+                                href="/"
+                                className="text-gray-200 hover:text-white transition-colors font-medium"
+                            >
+                                Home
+                            </Link>
 
-                                    <Link
-                                        href="/gallery"
-                                        className="text-gray-200 hover:text-white transition-colors font-medium"
-                                    >
-                                        Gallery
-                                    </Link>
+                            <Link
+                                href="/gallery"
+                                className="text-gray-200 hover:text-white transition-colors font-medium"
+                            >
+                                Stock
+                            </Link>
 
-                                    {auth.user && auth.user.id === 3 ? (
+                            <Link
+                                href="/cart"
+                                className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                            >
+                                Chart
+                            </Link>
+
+                            {auth.user ? (
+                                <Link
+                                    href={route("profile.edit")}
+                                    className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                                >
+                                    Profile
+                                </Link>
+                            ) : (
+                                <></>
+                            )}
+                        </ul>
+
+                        <div className="header-contact flex">
+                            <ul className="header-nav__links">
+                                {auth.user ? (
+                                    <li className="current flex ">
                                         <Link
-                                            href="/cart"
+                                            href="/dashboard"
                                             className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                                         >
-                                            Chart
+                                            Dashboard
                                         </Link>
-                                    ) : (
-                                        <></>
-                                    )}
-                                </ul>
-
-                                <div className="header-contact flex">
-                                    <ul className="header-nav__links">
-                                        {auth.user ? (
-                                            <li className="current flex ">
-                                                {(auth.user &&
-                                                    auth.user.id === 1) ||
-                                                (auth.user &&
-                                                    auth.user.id === 2) ? (
-                                                    <Link
-                                                        href="/dashboard"
-                                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                                    >
-                                                        Dashboard
-                                                    </Link>
-                                                ) : (
-                                                    <></>
-                                                )}
-
-                                                {auth.user &&
-                                                auth.user.id === 3 ? (
-                                                    <Link
-                                                        href={route(
-                                                            "profile.edit",
-                                                        )}
-                                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                                    >
-                                                        Profile
-                                                    </Link>
-                                                ) : (
-                                                    <></>
-                                                )}
-                                            </li>
-                                        ) : (
-                                            <>
-                                                <li>
-                                                    <Link
-                                                        href="/login"
-                                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                                    >
-                                                        Log in
-                                                    </Link>
-                                                </li>
-                                                <li>
-                                                    <Link
-                                                        href="/register"
-                                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                                    >
-                                                        Register
-                                                    </Link>
-                                                </li>
-                                            </>
-                                        )}
-                                    </ul>
-                                </div>
-                            </nav>
+                                    </li>
+                                ) : (
+                                    <>
+                                        <li>
+                                            <Link
+                                                href="/login"
+                                                className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                                            >
+                                                Log in
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link
+                                                href="/register"
+                                                className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                                            >
+                                                Register
+                                            </Link>
+                                        </li>
+                                    </>
+                                )}
+                            </ul>
+                        </div>
+                    </nav>
                         </div>
                     </header>
 
@@ -205,7 +191,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                     Welcome to
                                 </div>
                                 <h1 className="intro-header__big-type">
-                                    Sniffy <br />
+                                    Sniffly <br />
                                 </h1>
                             </div>
 
@@ -228,23 +214,21 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
 
                                 <div className="intro-block-content__text-wrap">
                                     <p className="intro-block-content__text">
-                                        Savor moments of bliss with every sip,
-                                        as our expertly crafted coffees and
-                                        delectable pastries embrace your senses.
+                                         Sniffly Parfume website menyediakan berbagai macam parfume
                                     </p>
 
                                     <ul className="intro-block-content__social">
                                         <li>
-                                            <a href="#0">FB</a>
+                                            <a href="#0"></a>
                                         </li>
                                         <li>
-                                            <a href="#0">IG</a>
+                                            <a href="#0"></a>
                                         </li>
                                         <li>
-                                            <a href="#0">PI</a>
+                                            <a href="#0"></a>
                                         </li>
                                         <li>
-                                            <a href="#0">X</a>
+                                            <a href="#0"></a>
                                         </li>
                                     </ul>
                                 </div>
@@ -291,8 +275,8 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
 
                                 <figure className="about-pic-primary">
                                     <img
-                                        src="https://i.pinimg.com/736x/ab/3a/ad/ab3aad65ca540a7424d35216974b71f7.jpg"
-                                        srcSet="https://i.pinimg.com/736x/ab/3a/ad/ab3aad65ca540a7424d35216974b71f7.jpg 1x, https://i.pinimg.com/736x/ab/3a/ad/ab3aad65ca540a7424d35216974b71f7.jpg 2x"
+                                        src="https://i.pinimg.com/736x/f4/5c/29/f45c295b657fb38a26958cf6c9c99d73.jpg"
+                                        srcSet="https://i.pinimg.com/736x/f4/5c/29/f45c295b657fb38a26958cf6c9c99d73.jpg 1x, https://i.pinimg.com/736x/f4/5c/29/f45c295b657fb38a26958cf6c9c99d73.jpg 2x"
                                         alt=""
                                     />
                                 </figure>
@@ -300,7 +284,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
 
                             <div className="column xl-6 lg-6 md-12 s-about__content-end">
                                 <p>
-                                    At Sniffy Perfume, we believe that a
+                                    At Sniffly Perfume, we believe that a
                                     fragrance is more than just a scent—it's a
                                     story, an identity, and a lasting
                                     impression. Our carefully curated collection
@@ -312,14 +296,14 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                 <p>
                                     Whether you're searching for an elegant
                                     signature fragrance, a bold evening scent,
-                                    or a subtle everyday aroma, Sniffy Perfume
+                                    or a subtle everyday aroma, Sniffly Perfume
                                     ensures every bottle you choose reflects
                                     your personality and style.
                                 </p>
 
                                 <p>
                                     With a commitment to authenticity and
-                                    quality, Sniffy Perfume offers only 100%
+                                    quality, Sniffly Perfume offers only 100%
                                     original products sourced from trusted
                                     partners worldwide. We strive to make luxury
                                     accessible, delivering exceptional perfumes
@@ -328,7 +312,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                 </p>
 
                                 <p>
-                                    Sniffy Perfume is more than a store—it's a
+                                    Sniffly Perfume is more than a store—it's a
                                     destination for fragrance lovers who want to
                                     explore, express, and elevate themselves
                                     through the art of scent.
@@ -591,7 +575,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                             <div className="column xl-12 section-header-wrap">
                                 <div className="section-header" data-num="03">
                                     <h2 className="text-display-title">
-                                        Gallery
+                                        TOP RECOMMEND
                                     </h2>
                                 </div>
                             </div>
@@ -701,10 +685,10 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
 
                         <div className="flex justify-center items-center border-2 border-white w-full mt-20">
                             <Link
-                                href="/cart"
+                                href="/gallery"
                                 className="btn btn-primary btn-large"
                             >
-                                Checkout your Parfume
+                                Check Ready Stock 
                             </Link>
                         </div>
                     </section>
@@ -987,41 +971,18 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                     <ul className="link-list">
                                         <li>
                                             <a href="mailto:#0">
-                                                contact@lounge.com
+                                                snifflystore@gmail.com
                                             </a>
                                         </li>
                                         <li>
                                             <a href="tel:+2135551212">
-                                                (213) 555-123-3456
+                                                (+62) 878-8920-2137
                                             </a>
                                         </li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="row s-footer__bottom">
-                            <div className="column xl-6 lg-12">
-                                <p className="ss-copyright">
-                                    <span>© Lounge 2025</span>
-                                    <span>
-                                        Design by{" "}
-                                        <a href="https://styleshout.com/">
-                                            StyleShout
-                                        </a>
-                                    </span>
-                                    Distributed by{" "}
-                                    <a
-                                        href="https://themewagon.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        ThemeWagon
-                                    </a>
-                                </p>
-                            </div>
-                        </div>
-
                         <div className="ss-go-top">
                             <a
                                 className="smoothscroll"

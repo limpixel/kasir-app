@@ -171,7 +171,7 @@ export default function Gallery({ auth, products, categories, csrf_token }) {
     return (
         <>
             <Head>
-                <title>Sniffy - Premium Perfume Store</title>
+                <title>Sniffly - Premium Perfume Store</title>
             </Head>
 
             <header className="s-header">

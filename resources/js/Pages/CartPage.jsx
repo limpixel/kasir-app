@@ -61,7 +61,7 @@ export default function CartPage({ auth }) {
     const bankDetails = {
         bank: "BCA",
         account: "1234567890",
-        holder: "Sniffy Store",
+        holder: "Sniffly Store",
     };
 
     /* ===============================
@@ -446,7 +446,7 @@ export default function CartPage({ auth }) {
                 return;
             }
 
-            const adminPhone = "628115133959";
+            const adminPhone = "6287889202137";
             const userPhone = checkoutData.phone.startsWith("08")
                 ? "62" + checkoutData.phone.slice(1)
                 : checkoutData.phone.startsWith("+62")
@@ -532,7 +532,7 @@ export default function CartPage({ auth }) {
     return (
         <>
             <Head>
-                <title>Sniffy - Premium Perfume Store</title>
+                <title>Sniffly - Premium Perfume Store</title>
             </Head>
 
             <header className="s-header">

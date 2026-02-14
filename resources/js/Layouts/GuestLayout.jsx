@@ -15,7 +15,7 @@ export default function Guest({ children }) {
             </div>
 
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-white tracking-wider">sniffy</h1>
+                <h1 className="text-4xl font-bold text-white tracking-wider">Sniffly</h1>
             </div>
 
             <div className="w-full sm:max-w-md mt-6 px-6 py-8 bg-gray-800/50 border border-gray-700 shadow-2xl overflow-hidden sm:rounded-xl backdrop-blur-sm">
