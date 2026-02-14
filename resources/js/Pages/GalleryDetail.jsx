@@ -47,6 +47,12 @@ export default function GalleryDetail() {
     }, []);
 
     const addToCart = (item) => {
+        if (!auth.user) {
+            // Redirect ke halaman login jika user belum login
+            window.location.href = '/login';
+            return;
+        }
+        
         if (!item?.id) return;
 
         setCart((prev) => {
@@ -145,8 +151,15 @@ export default function GalleryDetail() {
             {/* ================= PRODUCT DETAIL ================= */}
             <section className="s-content" style={{ paddingTop: "14rem" }}>
                 {/* BACK LINK */}
-                    <div className="column large-12 text-start">
-                <div className=" row" style={{ marginTop: "40px", marginLeft: "100px", marginBottom:"40px" }}>
+                <div className="column large-12 text-start">
+                    <div
+                        className=" row"
+                        style={{
+                            marginTop: "40px",
+                            marginLeft: "100px",
+                            marginBottom: "40px",
+                        }}
+                    >
                         <Link href="/gallery" style={{ color: "#aaa" }}>
                             ← Kembali ke Gallery
                         </Link>
@@ -189,13 +202,23 @@ export default function GalleryDetail() {
                                 )}
                             </h3>
 
-                            <button
-                                onClick={() => addToCart(product)}
-                                className="btn btn--primary"
-                                style={{ width: "100%" }}
-                            >
-                                + Tambah ke Keranjang
-                            </button>
+                            {auth.user && user.id === 3 ? (
+                                <button
+                                    onClick={() => addToCart(product)}
+                                    className="btn btn--primary"
+                                    style={{ width: "100%" }}
+                                >
+                                    + Tambah ke Keranjang
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => addToCart(product)}
+                                    className="btn btn--primary"
+                                    style={{ width: "100%" }}
+                                >
+                                    Harap Login/Register
+                                </button>
+                            )}
                         </div>
                     </div>
 
