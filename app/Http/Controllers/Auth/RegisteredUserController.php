@@ -46,6 +46,11 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
+        // Check if the registered user has the specific email
+        if ($user->email === 'customer@gmail.com') {
+            return redirect('/');
+        }
+
         return redirect(route('dashboard', absolute: false));
     }
 }

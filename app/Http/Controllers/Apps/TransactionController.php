@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Apps;
 
+use App\Services\JabodetabekValidatorService;
 use Inertia\Inertia;
 use App\Models\Cart;
 use App\Models\Product;
@@ -15,7 +16,13 @@ use App\Http\Controllers\Controller;
 
 class TransactionController extends Controller
 {
-    
+    private JabodetabekValidatorService $jabodetabekValidator;
+
+    public function __construct(JabodetabekValidatorService $jabodetabekValidator)
+    {
+        $this->jabodetabekValidator = $jabodetabekValidator;
+    }
+
     public function index()
     {
         //get cart
@@ -44,7 +51,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    
+
     public function searchProduct(Request $request)
     {
         //find product by barcode
@@ -63,7 +70,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    
+
     public function addToCart(Request $request)
     {
         // Cari produk berdasarkan ID yang diberikan
@@ -107,7 +114,7 @@ class TransactionController extends Controller
     }
 
 
-    
+
     public function destroyCart($cart_id)
     {
         $cart = Cart::with('product')->whereId($cart_id)->first();
@@ -122,9 +129,19 @@ class TransactionController extends Controller
 
     }
 
-    
+
     public function store(Request $request)
     {
+        // Validate customer location for Jabodetabek region
+        if ($request->customer_id) {
+            $customer = Customer::find($request->customer_id);
+            if ($customer && !$this->jabodetabekValidator->isJabodetabek($customer->city, $customer->province, $customer->address)) {
+                return redirect()->back()
+                    ->withErrors(['location' => 'Maaf, kami hanya melayani pembelian untuk wilayah Jabodetabek (Jakarta, Bogor, Depok, Tangerang, Bekasi).'])
+                    ->withInput();
+            }
+        }
+
         /**
          * algorithm generate no invoice
          */

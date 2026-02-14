@@ -21,6 +21,11 @@ Route::get('/', function () {
     ]);
 });
 
+use App\Http\Controllers\GalleryController;
+
+Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery');
+Route::get('/gallery-detail/{id}', [GalleryController::class, 'show'])->name('gallery.detail');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/cart', [FECheckoutController::class, 'index'])->name('cart.index');
@@ -72,6 +77,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/api/customer-transactions/{userId}', [ProfileController::class, 'getCustomerTransactions'])->name('profile.customer.transactions');
 });
 
 require __DIR__ . '/auth.php';

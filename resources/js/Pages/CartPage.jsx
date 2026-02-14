@@ -3,7 +3,12 @@ import { Link, Head, usePage } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 
 export default function CartPage({ auth }) {
-    const { products, categories, csrf_token, transactions: serverTransactions } = usePage().props;
+    const {
+        products,
+        categories,
+        csrf_token,
+        transactions: serverTransactions,
+    } = usePage().props;
 
     /* ===============================
         STATE
@@ -13,7 +18,7 @@ export default function CartPage({ auth }) {
         products?.[0]?.id ?? null,
     );
 
-    const [activeTab, setActiveTab] = useState("gallery");
+    const [activeTab, setActiveTab] = useState("checkout");
 
     const [imageLoading, setImageLoading] = useState({});
 
@@ -26,21 +31,33 @@ export default function CartPage({ auth }) {
     // ✅ CHECKOUT FORM FROM STORAGE
     const [checkoutData, setCheckoutData] = useState(() => {
         const saved = localStorage.getItem("checkoutData");
-        return saved
+        const parsedData = saved
             ? JSON.parse(saved)
             : {
                   name: "",
                   phone: "",
                   address: "",
+                  city: "",
+                  province: "",
+                  shippingOption: "",
                   payment: "COD",
               };
+
+        // Ensure district is not used anymore
+        delete parsedData.district;
+
+        return parsedData;
     });
 
     // ✅ TRANSACTION HISTORY (seeded from server)
-    const [transactions, setTransactions] = useState(() => serverTransactions || []);
+    const [transactions, setTransactions] = useState(
+        () => serverTransactions || [],
+    );
     const [loadingTransactions, setLoadingTransactions] = useState(false);
     // Transfer modal
     const [showTransferModal, setShowTransferModal] = useState(false);
+    // QRIS modal
+    const [showQRISModal, setShowQRISModal] = useState(false);
     const bankDetails = {
         bank: "BCA",
         account: "1234567890",
@@ -93,12 +110,16 @@ export default function CartPage({ auth }) {
         }));
     }, [activeProductId]);
 
-    // Prefill name from authenticated user if available
+    // Prefill name and phone from authenticated user if available
     useEffect(() => {
-        if (auth?.user && !checkoutData.name) {
-            setCheckoutData((prev) => ({ ...prev, name: auth.user.name }));
+        if (auth?.user) {
+            setCheckoutData((prev) => ({
+                ...prev,
+                name: prev.name || auth.user.name,
+                phone: prev.phone || auth.user.phone || "",
+            }));
         }
-    }, [auth, checkoutData.name]);
+    }, [auth]);
 
     // transactions are provided from server via Inertia props; no client-side fetch required
 
@@ -118,7 +139,69 @@ export default function CartPage({ auth }) {
             return;
         }
 
+        // Validate Jabodetabek location
+        const jabodetabekCities = [
+            "jakarta",
+            "bogor",
+            "depok",
+            "tangerang",
+            "bekasi",
+        ];
+        const isValidLocation = jabodetabekCities.some(
+            (city) =>
+                checkoutData.city.toLowerCase().includes(city) ||
+                checkoutData.province.toLowerCase().includes(city),
+        );
+
+        if (!isValidLocation) {
+            alert(
+                "Maaf, kami hanya melayani pembelian untuk wilayah Jabodetabek (Jakarta, Bogor, Depok, Tangerang, Bekasi).",
+            );
+            return;
+        }
+
         try {
+            // Calculate shipping cost based on location and shipping option
+            let shippingCost = 0;
+            let baseShippingCost = 0;
+
+            // Base shipping cost based on location
+            if (checkoutData.city.toLowerCase().includes("jakarta")) {
+                baseShippingCost = 15000; // Within Jakarta
+            } else if (
+                checkoutData.city.toLowerCase().includes("bekasi") ||
+                checkoutData.city.toLowerCase().includes("depok") ||
+                checkoutData.city.toLowerCase().includes("tangerang")
+            ) {
+                baseShippingCost = 20000; // Nearby areas
+            } else if (checkoutData.city.toLowerCase().includes("bogor")) {
+                baseShippingCost = 25000; // Further away
+            } else {
+                baseShippingCost = 30000; // Default for Jabodetabek
+            }
+
+            // Adjust shipping cost based on shipping option
+            switch (checkoutData.shippingOption) {
+                case "reguler":
+                    shippingCost = baseShippingCost; // Standard rate
+                    break;
+                case "express":
+                    shippingCost = baseShippingCost + 10000; // Additional fee for express
+                    break;
+                case "same_day":
+                    shippingCost = baseShippingCost + 20000; // Additional fee for same day
+                    break;
+                default:
+                    shippingCost = baseShippingCost; // Default to reguler if not selected
+            }
+
+            // Calculate grand total with shipping cost
+            const baseGrandTotal = cart.reduce(
+                (sum, item) => sum + item.sell_price * item.qty,
+                0,
+            );
+            const grandTotalWithShipping = baseGrandTotal + shippingCost;
+
             // ✅ SAVE TRANSACTION TO DATABASE
             const response = await fetch("/cart/save-transaction", {
                 method: "POST",
@@ -131,11 +214,12 @@ export default function CartPage({ auth }) {
                     customer_name: checkoutData.name,
                     customer_phone: checkoutData.phone,
                     customer_address: checkoutData.address,
+                    customer_city: checkoutData.city,
+                    customer_province: checkoutData.province,
+                    shipping_cost: shippingCost,
+                    shipping_option: checkoutData.shippingOption,
                     payment_method: checkoutData.payment,
-                    grand_total: cart.reduce(
-                        (sum, item) => sum + item.sell_price * item.qty,
-                        0,
-                    ),
+                    grand_total: grandTotalWithShipping,
                 }),
             });
 
@@ -144,7 +228,8 @@ export default function CartPage({ auth }) {
                 const errorText = await response.text();
                 console.error("Server Error:", response.status, errorText);
                 alert(
-                    "Gagal menyimpan transaksi: Server error " + response.status
+                    "Gagal menyimpan transaksi: Server error " +
+                        response.status,
                 );
                 return;
             }
@@ -167,17 +252,30 @@ export default function CartPage({ auth }) {
                 .map((p) => `- ${p.title} x${p.qty}`)
                 .join("%0A");
 
+            // Determine shipping option label for message
+            const shippingOptionLabels = {
+                reguler: "Reguler (2-3 hari kerja)",
+                express: "Express (1 hari kerja)",
+                same_day: "Same Day (hari yang sama)",
+            };
+            const shippingOptionLabel =
+                shippingOptionLabels[checkoutData.shippingOption] ||
+                "Reguler (2-3 hari kerja)";
+
             const message = `
             Halo Admin, saya ingin order:
 
             Nama: ${checkoutData.name}
             No HP: ${userPhone}
-            Alamat: ${checkoutData.address}
+            Alamat: ${checkoutData.address}, ${checkoutData.city}, ${checkoutData.province}
+            Jenis Pengantaran: ${shippingOptionLabel}
             Pembayaran: ${checkoutData.payment}
+            Ongkos Kirim: Rp ${shippingCost.toLocaleString("id-ID")}
 
             Pesanan:
             ${productList}
 
+            Total: Rp ${grandTotalWithShipping.toLocaleString("id-ID")}
             Invoice: ${result.invoice}
         `;
 
@@ -193,6 +291,9 @@ export default function CartPage({ auth }) {
                 name: "",
                 phone: "",
                 address: "",
+                city: "",
+                province: "",
+                shippingOption: "",
                 payment: "COD",
             });
 
@@ -209,6 +310,11 @@ export default function CartPage({ auth }) {
     const handleStartCheckout = () => {
         if (checkoutData.payment === "Transfer") {
             setShowTransferModal(true);
+            return;
+        }
+        
+        if (checkoutData.payment === "QRIS") {
+            setShowQRISModal(true);
             return;
         }
 
@@ -229,6 +335,9 @@ export default function CartPage({ auth }) {
                     customer_name: checkoutData.name,
                     customer_phone: checkoutData.phone,
                     customer_address: checkoutData.address,
+                    customer_city: checkoutData.city,
+                    customer_province: checkoutData.province,
+                    shipping_option: checkoutData.shippingOption,
                     payment_method: checkoutData.payment,
                     grand_total: cart.reduce(
                         (sum, item) => sum + item.sell_price * item.qty,
@@ -242,7 +351,8 @@ export default function CartPage({ auth }) {
                 const errorText = await response.text();
                 console.error("Server Error:", response.status, errorText);
                 alert(
-                    "Gagal menyimpan transaksi: Server error " + response.status
+                    "Gagal menyimpan transaksi: Server error " +
+                        response.status,
                 );
                 return;
             }
@@ -274,8 +384,98 @@ export default function CartPage({ auth }) {
             setCart([]);
             localStorage.removeItem("cart");
             localStorage.removeItem("checkoutData");
-            setCheckoutData({ name: "", phone: "", address: "", payment: "COD" });
+            setCheckoutData({
+                name: "",
+                phone: "",
+                address: "",
+                city: "",
+                province: "",
+                shippingOption: "",
+                payment: "COD",
+            });
             setShowTransferModal(false);
+            window.location.reload();
+
+            window.location.href = waUrl;
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            alert("Error: " + error.message);
+        }
+    };
+    
+    const handleConfirmQRIS = async () => {
+        // Save transaction for QRIS payment
+        try {
+            const response = await fetch("/cart/save-transaction", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrf_token,
+                },
+                body: JSON.stringify({
+                    items: cart,
+                    customer_name: checkoutData.name,
+                    customer_phone: checkoutData.phone,
+                    customer_address: checkoutData.address,
+                    customer_city: checkoutData.city,
+                    customer_province: checkoutData.province,
+                    shipping_option: checkoutData.shippingOption,
+                    payment_method: checkoutData.payment,
+                    grand_total: cart.reduce(
+                        (sum, item) => sum + item.sell_price * item.qty,
+                        0,
+                    ),
+                }),
+            });
+
+            // Check if response is ok
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Server Error:", response.status, errorText);
+                alert(
+                    "Gagal menyimpan transaksi: Server error " +
+                        response.status,
+                );
+                return;
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                alert("Gagal menyimpan transaksi: " + result.message);
+                return;
+            }
+
+            const adminPhone = "628115133959";
+            const userPhone = checkoutData.phone.startsWith("08")
+                ? "62" + checkoutData.phone.slice(1)
+                : checkoutData.phone.startsWith("+62")
+                  ? checkoutData.phone.replace("+", "")
+                  : checkoutData.phone;
+
+            const productList = cart
+                .map((p) => `- ${p.title} x${p.qty}`)
+                .join("%0A");
+
+            const message = `\nHalo Admin, saya ingin konfirmasi pembayaran QRIS:\n\nNama: ${checkoutData.name}\nNo HP: ${userPhone}\nAlamat: ${checkoutData.address}\nPembayaran: ${checkoutData.payment}\n\nPesanan:\n${productList}\n\nInvoice: ${result.invoice}\n`;
+
+            const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(
+                message,
+            )}`;
+
+            // clear
+            setCart([]);
+            localStorage.removeItem("cart");
+            localStorage.removeItem("checkoutData");
+            setCheckoutData({
+                name: "",
+                phone: "",
+                address: "",
+                city: "",
+                province: "",
+                shippingOption: "",
+                payment: "COD",
+            });
+            setShowQRISModal(false);
             window.location.reload();
 
             window.location.href = waUrl;
@@ -360,24 +560,35 @@ export default function CartPage({ auth }) {
                             </Link>
 
                             <Link
+                                href="/gallery"
+                                className="text-gray-200 hover:text-white transition-colors font-medium"
+                            >
+                                Gallery
+                            </Link>
+
+                            <Link
                                 href="/cart"
                                 className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                             >
                                 Chart
                             </Link>
+
+                            {auth.user ? (
+                                <Link
+                                    href={route("profile.edit")}
+                                    className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+                                >
+                                    Profile
+                                </Link>
+                            ) : (
+                                <></>
+                            )}
                         </ul>
 
                         <div className="header-contact flex">
                             <ul className="header-nav__links">
                                 {auth.user ? (
                                     <li className="current flex ">
-                                        <Link
-                                            href="/chart"
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                        >
-                                            Chart
-                                        </Link>
-
                                         <Link
                                             href="/dashboard"
                                             className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
@@ -415,16 +626,6 @@ export default function CartPage({ auth }) {
             <div className="container s-menu target-section py-8">
                 <div className="flex gap-4 mb-8 border-b border-white/30">
                     <button
-                        onClick={() => setActiveTab("gallery")}
-                        className={`px-6 py-3 font-semibold transition-all ${
-                            activeTab === "gallery"
-                                ? "text-white border-b-2 border-white"
-                                : "text-white/50 hover:text-white"
-                        }`}
-                    >
-                        Gallery
-                    </button>
-                    <button
                         onClick={() => setActiveTab("checkout")}
                         className={`px-6 py-3 font-semibold transition-all ${
                             activeTab === "checkout"
@@ -445,118 +646,6 @@ export default function CartPage({ auth }) {
                         Riwayat ({transactions.length})
                     </button>
                 </div>
-
-                {activeTab === "gallery" && (
-                    <div className="flex border-white border-2 justify-center items-center">
-                        <section
-                            id="gallery"
-                            className="container s-gallery target-section "
-                        >
-                            <div className="gallery-items grid-cols grid-cols--wrap gap-10 flex">
-                                {/* NAV */}
-                                <ul className="space-y-2 max-h-[420px] overflow-y-auto custom-scrollbar">
-                                    {products.map((p) => {
-                                        const active = p.id === activeProductId;
-
-                                        return (
-                                            <li
-                                                key={p.id}
-                                                onClick={() =>
-                                                    setActiveProductId(p.id)
-                                                }
-                                                className={`border rounded-lg p-3 cursor-pointer transition ${
-                                                    active
-                                                        ? "border-white bg-white/10"
-                                                        : "border-white/20 hover:bg-white/5"
-                                                }`}
-                                            >
-                                                <div className="text-2xl font-semibold text-white">
-                                                    {p.title}
-                                                </div>
-                                                <div className="text-white/60">
-                                                    Rp{" "}
-                                                    {Number(
-                                                        p.sell_price,
-                                                    ).toLocaleString("id-ID")}
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-
-                                {/* CARD */}
-                                {products
-                                    .filter((p) => p.id === activeProductId)
-                                    .map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="gallery-items__item max-w-[340px]"
-                                        >
-                                            {imageLoading[item.id] && (
-                                                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center z-10">
-                                                    <div className="animate-pulse text-white">
-                                                        Loading...
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <img
-                                                src={item.image}
-                                                alt={item.title}
-                                                className="w-full h-[260px] object-cover rounded-xl"
-                                                loading="eager"
-                                                onLoad={() =>
-                                                    setImageLoading(
-                                                        (prev) => ({
-                                                            ...prev,
-                                                            [item.id]: false,
-                                                        }),
-                                                    )
-                                                }
-                                                onError={() =>
-                                                    setImageLoading(
-                                                        (prev) => ({
-                                                            ...prev,
-                                                            [item.id]: false,
-                                                        }),
-                                                    )
-                                                }
-                                            />
-
-                                            <div className="mt-4 p-4 bg-black/40 rounded-xl">
-                                                <h2 className="text-3xl text-white font-semibold">
-                                                    {item.title}
-                                                </h2>
-
-                                                <p className="text-white/60 mt-2">
-                                                    {item.description}
-                                                </p>
-
-                                                <div className="mt-4 flex justify-between items-center">
-                                                    <span className="text-xl text-white font-bold">
-                                                        Rp{" "}
-                                                        {Number(
-                                                            item.sell_price,
-                                                        ).toLocaleString(
-                                                            "id-ID",
-                                                        )}
-                                                    </span>
-
-                                                    <button
-                                                        onClick={() =>
-                                                            addToChart(item)
-                                                        }
-                                                        className="border border-white px-4 py-2 text-white hover:bg-white hover:text-black transition-colors"
-                                                    >
-                                                        + Add to Cart
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                        </section>
-                    </div>
-                )}
 
                 {/* ================= CHECKOUT TAB ================= */}
                 {activeTab === "checkout" && (
@@ -664,7 +753,14 @@ export default function CartPage({ auth }) {
                                         <input
                                             placeholder="08xxxx"
                                             className="w-full p-3 text-2xl bg-black border border-white/30 text-white rounded-lg focus:border-white transition-colors"
-                                            value={checkoutData.phone}
+                                            value={
+                                                checkoutData.phone ||
+                                                auth.user?.phone ||
+                                                ""
+                                            }
+                                            disabled={
+                                                auth.user?.phone ? true : false
+                                            }
                                             onChange={(e) =>
                                                 setCheckoutData({
                                                     ...checkoutData,
@@ -672,6 +768,50 @@ export default function CartPage({ auth }) {
                                                 })
                                             }
                                         />
+                                        {auth.user?.phone && (
+                                            <p className="text-2xl text-white/50 mt-1">
+                                                Nomor diambil dari profil Anda:{" "}
+                                                {auth.user.phone}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-white/70 mb-2">
+                                            Lokasi Pengiriman
+                                        </label>
+                                        <select
+                                            className="w-full p-3 bg-black border border-white/30 text-white rounded-lg focus:border-white transition-colors"
+                                            value={`${checkoutData.city},${checkoutData.province}`}
+                                            onChange={(e) => {
+                                                const [city, province] =
+                                                    e.target.value.split(",");
+                                                setCheckoutData({
+                                                    ...checkoutData,
+                                                    city: city,
+                                                    province: province,
+                                                });
+                                            }}
+                                        >
+                                            <option value="">
+                                                Pilih Lokasi Pengiriman
+                                            </option>
+                                            <option value="jakarta,Jakarta">
+                                                Jakarta
+                                            </option>
+                                            <option value="bogor,Jawa Barat">
+                                                Bogor
+                                            </option>
+                                            <option value="depok,Jawa Barat">
+                                                Depok
+                                            </option>
+                                            <option value="tangerang,Banten">
+                                                Tangerang
+                                            </option>
+                                            <option value="bekasi,Jawa Barat">
+                                                Bekasi
+                                            </option>
+                                        </select>
                                     </div>
 
                                     <div>
@@ -691,28 +831,65 @@ export default function CartPage({ auth }) {
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-white/70 mb-2">
-                                            Metode Pembayaran
-                                        </label>
-                                        <select
-                                            className="w-full p-3 bg-black border border-white/30 text-white rounded-lg focus:border-white transition-colors"
-                                            value={checkoutData.payment}
-                                            onChange={(e) =>
-                                                setCheckoutData({
-                                                    ...checkoutData,
-                                                    payment: e.target.value,
-                                                })
-                                            }
-                                        >
-                                            <option value="COD">COD</option>
-                                            <option value="Transfer">
-                                                Transfer
-                                            </option>
-                                            <option value="E-Wallet">
-                                                E-Wallet
-                                            </option>
-                                        </select>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-white/70 mb-2">
+                                                Metode Pembayaran
+                                            </label>
+                                            <select
+                                                className="w-full p-3 bg-black border border-white/30 text-white rounded-lg focus:border-white transition-colors"
+                                                value={checkoutData.payment}
+                                                onChange={(e) =>
+                                                    setCheckoutData({
+                                                        ...checkoutData,
+                                                        payment: e.target.value,
+                                                    })
+                                                }
+                                            >
+                                                <option value="COD">COD</option>
+                                                <option value="Transfer">
+                                                    Transfer
+                                                </option>
+                                                <option value="E-Wallet">
+                                                    E-Wallet
+                                                </option>
+                                                <option value="QRIS">
+                                                    QRIS
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-white/70 mb-2">
+                                                Jenis Pengantaran
+                                            </label>
+                                            <select
+                                                className="w-full p-3 bg-black border border-white/30 text-white rounded-lg focus:border-white transition-colors"
+                                                value={
+                                                    checkoutData.shippingOption ||
+                                                    ""
+                                                }
+                                                onChange={(e) =>
+                                                    setCheckoutData({
+                                                        ...checkoutData,
+                                                        shippingOption:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                            >
+                                                <option value="">
+                                                    Pilih Jenis Pengantaran
+                                                </option>
+                                                <option value="reguler">
+                                                    Reguler (2-3 hari kerja)
+                                                </option>
+                                                <option value="express">
+                                                    Express (1 hari kerja)
+                                                </option>
+                                                <option value="same_day">
+                                                    Same Day (hari yang sama)
+                                                </option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div className="flex gap-3 pt-4">
@@ -741,17 +918,30 @@ export default function CartPage({ auth }) {
                 {/* Transfer Modal */}
                 {showTransferModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-black/60" onClick={() => setShowTransferModal(false)} />
+                        <div
+                            className="absolute inset-0 bg-black/60"
+                            onClick={() => setShowTransferModal(false)}
+                        />
 
                         <div className="relative bg-black/90 border border-white/30 rounded-xl p-6 w-full max-w-md z-10">
-                            <h3 className="text-2xl font-semibold text-white mb-4">Informasi Transfer</h3>
+                            <h3 className="text-2xl font-semibold text-white mb-4">
+                                Informasi Transfer
+                            </h3>
 
                             <div className="space-y-2 mb-4">
-                                <p className="text-white/70">Silakan transfer ke rekening berikut:</p>
+                                <p className="text-white/70">
+                                    Silakan transfer ke rekening berikut:
+                                </p>
                                 <div className="bg-black/40 p-4 rounded-lg">
-                                    <p className="text-white font-semibold">{bankDetails.bank}</p>
-                                    <p className="text-white">No. Rek: {bankDetails.account}</p>
-                                    <p className="text-white">Atas Nama: {bankDetails.holder}</p>
+                                    <p className="text-white font-semibold">
+                                        {bankDetails.bank}
+                                    </p>
+                                    <p className="text-white">
+                                        No. Rek: {bankDetails.account}
+                                    </p>
+                                    <p className="text-white">
+                                        Atas Nama: {bankDetails.holder}
+                                    </p>
                                 </div>
                             </div>
 
@@ -773,128 +963,222 @@ export default function CartPage({ auth }) {
                         </div>
                     </div>
                 )}
+                
+                {/* QRIS Modal */}
+                {showQRISModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center">
+                        <div
+                            className="absolute inset-0 bg-black/60"
+                            onClick={() => setShowQRISModal(false)}
+                        />
+
+                        <div className="relative bg-black/90 border border-white/30 rounded-xl p-6 w-full max-w-md z-10">
+                            <h3 className="text-2xl font-semibold text-white mb-4">
+                                Pembayaran QRIS
+                            </h3>
+
+                            <div className="space-y-4 mb-6">
+                                <p className="text-white/70 text-center">
+                                    Scan QRIS di bawah ini untuk melakukan pembayaran
+                                </p>
+                                
+                                {/* QRIS image */}
+                                <div className="flex justify-center">
+                                    <div className="bg-white p-4 rounded-lg">
+                                        <img 
+                                            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzG4iI7zGqTlLN07XToN_hS_IOr6lvuJok2A&s" 
+                                            alt="QRIS Code" 
+                                            className="w-48 h-48 object-contain"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <p className="text-white/70 text-center text-xl">
+                                    Setelah melakukan pembayaran, klik tombol "Sudah Bayar"
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => setShowQRISModal(false)}
+                                    className="flex-1 border border-white px-4 py-3 text-white rounded-lg font-semibold hover:bg-white/10 transition-colors"
+                                >
+                                    Batalkan
+                                </button>
+
+                                <button
+                                    onClick={handleConfirmQRIS}
+                                    className="flex-1 bg-white text-black px-4 py-3 rounded-lg font-semibold hover:bg-white/90 transition-colors"
+                                >
+                                    Sudah Bayar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* ================= HISTORY TAB ================= */}
                 {activeTab === "history" && (
                     <div className="max-w-4xl mx-auto">
-                                {loadingTransactions ? (
-                                    <div className="text-center py-12">
-                                        <p className="text-white/60 text-xl">Loading...</p>
-                                    </div>
-                                ) : transactions.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <p className="text-white/60 text-xl mb-4">Belum ada riwayat transaksi</p>
-                                        <button
-                                            onClick={() => setActiveTab("gallery")}
-                                            className="bg-white text-black px-6 py-2 rounded-lg font-semibold hover:bg-white/90 transition-colors"
-                                        >
-                                            Mulai Belanja
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-6">
-    {transactions.map((transaction) => (
-        <article
-            key={transaction.id}
-            className="bg-black/40 border border-white/10 rounded-2xl p-5 sm:p-6 backdrop-blur"
-        >
-            {/* HEADER */}
-            <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div>
-                    <p className="text-xl mt-4 sm:text-2xl font-semibold text-white">
-                       Invoice : {transaction.invoice}
-                    </p>
-                    <p className="text-xl text-white/50 mt-1">
-                        {transaction.created_at}
-                    </p>
-                </div>
+                        {loadingTransactions ? (
+                            <div className="text-center py-12">
+                                <p className="text-white/60 text-xl">
+                                    Loading...
+                                </p>
+                            </div>
+                        ) : transactions.length === 0 ? (
+                            <div className="text-center py-12">
+                                <p className="text-white/60 text-xl mb-4">
+                                    Belum ada riwayat transaksi
+                                </p>
+                                <button
+                                    onClick={() => setActiveTab("gallery")}
+                                    className="bg-white text-black px-6 py-2 rounded-lg font-semibold hover:bg-white/90 transition-colors"
+                                >
+                                    Mulai Belanja
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {transactions.map((transaction) => (
+                                    <article
+                                        key={transaction.id}
+                                        className="bg-black/40 border border-white/10 rounded-2xl p-5 sm:p-6 backdrop-blur"
+                                    >
+                                        {/* HEADER */}
+                                        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                            <div>
+                                                <p className="text-xl mt-4 sm:text-2xl font-semibold text-white">
+                                                    Invoice :{" "}
+                                                    {transaction.invoice}
+                                                </p>
+                                                <p className="text-xl text-white/50 mt-1">
+                                                    {transaction.created_at}
+                                                </p>
+                                            </div>
 
-                <div className="flex justify-center border-white items-center gap-3">
-                    <span
-                        className={`px-3 py-1 rounded-full text-2xl font-semibold uppercase tracking-wide
+                                            <div className="flex justify-center border-white items-center gap-3">
+                                                <span
+                                                    className={`px-3 py-1 rounded-full text-2xl font-semibold uppercase tracking-wide
                             ${
-                                transaction.status === 'completed'
-                                    ? 'bg-green-500/20 text-green-300'
-                                    : transaction.status === 'pending'
-                                    ? 'bg-yellow-500/20 text-yellow-300'
-                                    : 'bg-red-500/20 text-red-300'
+                                transaction.status === "completed"
+                                    ? "bg-green-500/20 text-green-300"
+                                    : transaction.status === "pending"
+                                      ? "bg-yellow-500/20 text-yellow-300"
+                                      : "bg-red-500/20 text-red-300"
                             }`}
-                    >
-                        {transaction.status}
-                    </span>
+                                                >
+                                                    {transaction.status}
+                                                </span>
 
-                    <button
-                        onClick={() =>
-                            window.open(
-                                `/transactions/${transaction.invoice}/print`,
-                                '_blank'
-                            )
-                        }
-                        className="px-4 py-1.5 text-xl border border-white/10 rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition"
-                    >
-                        Print
-                    </button>
-                </div>
-            </header>
+                                                <button
+                                                    onClick={() =>
+                                                        window.open(
+                                                            `/transactions/${transaction.invoice}/print`,
+                                                            "_blank",
+                                                        )
+                                                    }
+                                                    className="px-4 py-1.5 text-xl border border-white/10 rounded-lg text-white/80 hover:bg-white/5 hover:text-white transition"
+                                                >
+                                                    Print
+                                                </button>
+                                            </div>
+                                        </header>
 
-            {/* INFO */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="sm:col-span-2 bg-white/5 rounded-xl p-4 space-y-1">
-                    <p className="text-white">
-                        <span className="text-white/50">Nama:</span> {transaction.customer_name}
-                    </p>
-                    <p className="text-white">
-                        <span className="text-white/50">WhatsApp:</span> {transaction.customer_phone}
-                    </p>
-                    <p className="text-white">
-                        <span className="text-white/50">Alamat:</span> {transaction.customer_address}
-                    </p>
-                </div>
+                                        {/* INFO */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                                            <div className="sm:col-span-2 bg-white/5 rounded-xl p-4 space-y-1">
+                                                <p className="text-white">
+                                                    <span className="text-white/50">
+                                                        Nama:
+                                                    </span>{" "}
+                                                    {transaction.customer_name}
+                                                </p>
+                                                <p className="text-white">
+                                                    <span className="text-white/50">
+                                                        WhatsApp:
+                                                    </span>{" "}
+                                                    {transaction.customer_phone}
+                                                </p>
+                                                <p className="text-white">
+                                                    <span className="text-white/50">
+                                                        Alamat:
+                                                    </span>{" "}
+                                                    {
+                                                        transaction.customer_address
+                                                    }
+                                                </p>
+                                            </div>
 
-                <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-white/60 text-sm">Metode Pembayaran</p>
-                    <p className="text-white font-medium mb-4">
-                        {transaction.payment_method}
-                    </p>
+                                            <div className="bg-white/5 rounded-xl p-4">
+                                                <p className="text-white/60 text-sm">
+                                                    Metode Pembayaran
+                                                </p>
+                                                <p className="text-white font-medium mb-4">
+                                                    {transaction.payment_method}
+                                                </p>
 
-                    <p className="text-white/60 text-sm">Total</p>
-                    <p className="text-2xl font-bold text-white">
-                        Rp {Number(transaction.grand_total).toLocaleString('id-ID')}
-                    </p>
-                </div>
-            </div>
+                                                <p className="text-white/60 text-sm">
+                                                    Total
+                                                </p>
+                                                <p className="text-2xl font-bold text-white">
+                                                    Rp{" "}
+                                                    {Number(
+                                                        transaction.grand_total,
+                                                    ).toLocaleString("id-ID")}
+                                                </p>
+                                            </div>
+                                        </div>
 
-            {/* ITEMS */}
-            <div className="overflow-hidden rounded-xl border border-white/10">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-white/5">
-                        <tr className="text-xs uppercase tracking-wide text-white/50">
-                            <th className="py-3 px-4">Produk</th>
-                            <th className="py-3 px-4 w-20 text-center">Qty</th>
-                            <th className="py-3 px-4 text-right">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {transaction.items.map((item, idx) => (
-                            <tr
-                                key={idx}
-                                className="border-t border-white/5 text-white/80"
-                            >
-                                <td className="py-3 px-4">{item.product_name}</td>
-                                <td className="py-3 px-4 text-center">{item.qty}</td>
-                                <td className="py-3 px-4 text-right">
-                                    Rp {Number(item.subtotal).toLocaleString('id-ID')}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </article>
-    ))}
-</div>
-
-                                )}
+                                        {/* ITEMS */}
+                                        <div className="overflow-hidden rounded-xl border border-white/10">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead className="bg-white/5">
+                                                    <tr className="text-xs uppercase tracking-wide text-white/50">
+                                                        <th className="py-3 px-4">
+                                                            Produk
+                                                        </th>
+                                                        <th className="py-3 px-4 w-20 text-center">
+                                                            Qty
+                                                        </th>
+                                                        <th className="py-3 px-4 text-right">
+                                                            Subtotal
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {transaction.items.map(
+                                                        (item, idx) => (
+                                                            <tr
+                                                                key={idx}
+                                                                className="border-t border-white/5 text-white/80"
+                                                            >
+                                                                <td className="py-3 px-4">
+                                                                    {
+                                                                        item.product_name
+                                                                    }
+                                                                </td>
+                                                                <td className="py-3 px-4 text-center">
+                                                                    {item.qty}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-right">
+                                                                    Rp{" "}
+                                                                    {Number(
+                                                                        item.subtotal,
+                                                                    ).toLocaleString(
+                                                                        "id-ID",
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ),
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone', // Menambahkan kolom phone ke dalam fillable
     ];
 
     /**
@@ -64,5 +65,13 @@ class User extends Authenticatable
     public function isSuperAdmin()
     {
         return $this->hasRole('super-admin');
+    }
+
+    /**
+     * Get the user's transactions.
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'user_id');
     }
 }

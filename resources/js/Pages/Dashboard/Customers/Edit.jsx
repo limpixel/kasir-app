@@ -17,6 +17,8 @@ export default function Create({ customer }) {
         name: customer.name,
         no_telp: customer.no_telp,
         address: customer.address,
+        city: customer.city || '',
+        province: customer.province || '',
         _method: 'PUT',
     })
 
@@ -95,6 +97,35 @@ export default function Create({ customer }) {
                             value={data.address}
                         />
                     </div>
+                    <div className="col-span-6">
+                        <Input
+                            name='city'
+                            label={'City'}
+                            type={'text'}
+                            placeholder={'Kota pelanggan'}
+                            errors={errors.city}
+                            onChange={e => setData('city', e.target.value)}
+                            value={data.city}
+                        />
+                    </div>
+                    <div className="col-span-6">
+                        <Input
+                            name='province'
+                            label={'Province'}
+                            type={'text'}
+                            placeholder={'Provinsi pelanggan'}
+                            errors={errors.province}
+                            onChange={e => setData('province', e.target.value)}
+                            value={data.province}
+                        />
+                    </div>
+                    {errors.location && (
+                        <div className="col-span-12">
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                                <span className="block sm:inline">{errors.location}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </Card>
         </>

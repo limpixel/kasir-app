@@ -14,7 +14,8 @@ class Transaction extends Model
     protected $fillable = [
         'user_id', 'cashier_id', 'customer_id',
         'customer_name', 'customer_phone', 'customer_address',
-        'payment_method', 'status',
+        'province', 'city', 'district', 'ward', 'shipping_cost',
+        'payment_method', 'status', 'payment_status', 'payment_details',
         'invoice', 'cash', 'change',
         'discount', 'grand_total'
     ];
@@ -45,4 +46,8 @@ class Transaction extends Model
             get: fn ($value) => Carbon::parse($value)->format('d-M-Y H:i:s'),
         );
     }
+    
+    protected $casts = [
+        'payment_details' => 'array', // Untuk menghandle field json
+    ];
 }

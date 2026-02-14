@@ -6,14 +6,22 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
+use App\Services\JabodetabekValidatorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class FECheckoutController extends Controller
 {
+    private JabodetabekValidatorService $jabodetabekValidator;
+
+    public function __construct(JabodetabekValidatorService $jabodetabekValidator)
+    {
+        $this->jabodetabekValidator = $jabodetabekValidator;
+    }
+
     public function index() {
-        
+
         $products = Product::when(request()->search, function ($products) {
             $products = $products->where('title', 'like', '%' . request()->search . '%');
         })->with('category')->latest()->get();
@@ -114,9 +122,19 @@ class FECheckoutController extends Controller
             'customer_name' => 'required|string',
             'customer_phone' => 'required|string',
             'customer_address' => 'required|string',
+            'customer_city' => 'required|string',
+            'customer_province' => 'required|string',
             'payment_method' => 'required|string',
             'grand_total' => 'required|numeric',
         ]);
+
+        // Validate customer location for Jabodetabek region
+        if (!$this->jabodetabekValidator->isJabodetabek($request->customer_city, $request->customer_province, $request->customer_address)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Maaf, kami hanya melayani pembelian untuk wilayah Jabodetabek (Jakarta, Bogor, Depok, Tangerang, Bekasi).',
+            ], 422);
+        }
 
         try {
             // Create invoice number
@@ -129,6 +147,8 @@ class FECheckoutController extends Controller
                 'customer_name' => $request->customer_name,
                 'customer_phone' => $request->customer_phone,
                 'customer_address' => $request->customer_address,
+                'customer_city' => $request->customer_city,
+                'customer_province' => $request->customer_province,
                 'payment_method' => $request->payment_method,
                 'grand_total' => $request->grand_total,
                 'cash' => $request->grand_total,
