@@ -241,7 +241,8 @@ export default function CartPage({ auth }) {
                 return;
             }
 
-            const adminPhone = "628115133959";
+            // GANTI NOMOR LU UNTUK ORDERAN
+            const adminPhone = "6287889202137";
             const userPhone = checkoutData.phone.startsWith("08")
                 ? "62" + checkoutData.phone.slice(1)
                 : checkoutData.phone.startsWith("+62")
@@ -363,7 +364,7 @@ export default function CartPage({ auth }) {
                 return;
             }
 
-            const adminPhone = "628115133959";
+            const adminPhone = "6287889202137"; // ke double njir
             const userPhone = checkoutData.phone.startsWith("08")
                 ? "62" + checkoutData.phone.slice(1)
                 : checkoutData.phone.startsWith("+62")
